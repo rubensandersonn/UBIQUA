@@ -3,10 +3,6 @@
  */
 package com.coap.server.client;
 
-import java.net.InetAddress;
-import java.net.NetworkInterface;
-import java.net.SocketException;
-import java.util.Enumeration;
 
 import org.eclipse.californium.core.CoapClient;
 import org.eclipse.californium.core.CoapResponse;
@@ -25,11 +21,11 @@ public class ClientTest {
 	 * @param args
 	 */
 	public static void main(String[] args) {
-		Device device1 = new Device("sgps01", "sensor", "location", MediaTypeRegistry.APPLICATION_JSON, getMyIP());
-		Device device2 = new Device("adoor01", "actuator", "door", MediaTypeRegistry.APPLICATION_JSON, getMyIP());
-		Device device3 = new Device("soprinter01", "smart object", "printer", MediaTypeRegistry.APPLICATION_JSON, getMyIP());
-		Device device4 = new Device("stemp01", "sensor", "temperature", MediaTypeRegistry.APPLICATION_JSON, getMyIP());
-		Device device5 = new Device("slight01", "sensor", "lightness", MediaTypeRegistry.APPLICATION_JSON, getMyIP());
+		Device device1 = new Device("sgps01", "sensor", "location", MediaTypeRegistry.APPLICATION_JSON, Utils.getMyIP());
+		Device device2 = new Device("adoor01", "actuator", "door", MediaTypeRegistry.APPLICATION_JSON, Utils.getMyIP());
+		Device device3 = new Device("soprinter01", "smart object", "printer", MediaTypeRegistry.APPLICATION_JSON, Utils.getMyIP());
+		Device device4 = new Device("stemp01", "sensor", "temperature", MediaTypeRegistry.APPLICATION_JSON, Utils.getMyIP());
+		Device device5 = new Device("slight01", "sensor", "lightness", MediaTypeRegistry.APPLICATION_JSON, Utils.getMyIP());
 		
 		Gson gson = new Gson();
 		
@@ -73,26 +69,5 @@ public class ClientTest {
 	/**
 	 * @return
 	 */
-	private static String getMyIP(){
-		String ip = null;
-	    try {
-	        Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
-	        while (interfaces.hasMoreElements()) {
-	            NetworkInterface iface = interfaces.nextElement();
-	            // filters out 127.0.0.1 and inactive interfaces
-	            if (iface.isLoopback() || !iface.isUp())
-	                continue;
-
-	            Enumeration<InetAddress> addresses = iface.getInetAddresses();
-	            while(addresses.hasMoreElements()) {
-	                InetAddress addr = addresses.nextElement();
-	                ip = addr.getHostAddress();
-	                System.out.println(iface.getDisplayName() + " " + ip);
-	            }
-	        }
-	    } catch (SocketException e) {
-	        throw new RuntimeException(e);
-	    }
-	    return ip;
-	}
+	
 }
