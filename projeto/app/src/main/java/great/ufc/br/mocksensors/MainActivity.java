@@ -1,39 +1,42 @@
-package trabalho.avaliacao.coapadapt.application;
+package great.ufc.br.mocksensors;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.pm.PackageManager;
-import android.graphics.Color;
 import android.hardware.Sensor;
 import android.hardware.SensorManager;
-import android.location.Location;
-import android.location.LocationListener;
-import android.location.LocationManager;
+import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
+import android.os.Build;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.text.format.Formatter;
 import android.util.Log;
 import android.view.View;
 import android.widget.ArrayAdapter;
+import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.google.android.gms.awareness.Awareness;
+import com.google.android.gms.awareness.SnapshotClient;
+import com.google.android.gms.awareness.fence.TimeFence;
 import com.google.android.gms.awareness.snapshot.DetectedActivityResponse;
 import com.google.android.gms.awareness.snapshot.LocationResponse;
 import com.google.android.gms.awareness.snapshot.TimeIntervalsResponse;
 import com.google.android.gms.awareness.snapshot.WeatherResponse;
+import com.google.android.gms.awareness.state.TimeIntervals;
+import com.google.android.gms.awareness.state.Weather;
+import com.google.android.gms.location.DetectedActivity;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.gson.Gson;
 
 import org.eclipse.californium.core.CoapClient;
-import org.eclipse.californium.core.CoapResponse;
 import org.eclipse.californium.core.coap.MediaTypeRegistry;
 
 import java.net.Inet4Address;
@@ -45,97 +48,139 @@ import java.util.Enumeration;
 import java.util.LinkedHashMap;
 import java.util.List;
 
-import com.google.android.gms.awareness.Awareness;
-import com.google.android.gms.awareness.SnapshotClient;
+import great.ufc.br.mocksensors.model.Device;
 
-import trabalho.avaliacao.coapadapt.model.Device;
+import static android.support.v4.content.PermissionChecker.PERMISSION_GRANTED;
 
-public class MainActivity extends AppCompatActivity implements LocationListener {
+public class MainActivity extends AppCompatActivity {
 
-    private LinkedHashMap<String, String> context = new LinkedHashMap<String, String>();
-    private String[] permissions = {
-            Manifest.permission.ACCESS_FINE_LOCATION,
-            Manifest.permission.INTERNET,
-            Manifest.permission.ACCESS_NETWORK_STATE,
-            Manifest.permission.ACCESS_WIFI_STATE,
-            Manifest.permission.RECORD_AUDIO,
-            Manifest.permission.VIBRATE,
-            Manifest.permission_group.SENSORS
+    private Gson gson;
+    private ArrayList<Device> devices;
+    private LinkedHashMap<String, String> context;
+    private static final String COAP_SERVER_URL = "coap://18.229.202.214:5683/devices";
+
+    private String[] myPermissions = {
+        Manifest.permission.ACCESS_FINE_LOCATION,
+        Manifest.permission.INTERNET,
+        Manifest.permission.ACCESS_NETWORK_STATE,
+        Manifest.permission.ACCESS_WIFI_STATE,
+        Manifest.permission.RECORD_AUDIO,
+        Manifest.permission.VIBRATE,
+        Manifest.permission_group.SENSORS
     };
 
-    @SuppressLint("MissingPermission")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        gson = new Gson();
 
-        requestPermissions(permissions, 123);
+        if(ActivityCompat.checkSelfPermission(MainActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED){
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                requestPermissions(myPermissions,123);
+            }
+        }else {
+            context = new LinkedHashMap<String, String>();
+            startSnapshots();
+        }
 
-        LocationManager locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
-        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, this);
 
-        startSnapshots();
 
         SensorManager sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
         List<Sensor> availableSensors = sensorManager.getSensorList(Sensor.TYPE_ALL);
-        ArrayList<Device> devices = createDevices(availableSensors);
+        devices = createDevices(availableSensors);
 
         ListView list = (ListView) findViewById(R.id.listSensors);
         ArrayAdapter<Device> adapter = new ArrayAdapter<Device>(this, android.R.layout.simple_list_item_1, devices);
         list.setAdapter(adapter);
 
-        Gson gson = new Gson();
-        CoapClient client = new CoapClient("coap://18.229.202.214:5683/devices");
-        for(Device device : devices){
-            client.post(gson.toJson(device), MediaTypeRegistry.APPLICATION_JSON);
-        }
+        findViewById(R.id.btnSendReq).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if(view.getId() == R.id.btnSendReq){
+                     String envText = ((EditText) findViewById(R.id.editText)).getText().toString().trim();
+                    if(envText.length() > 0) context.put("env", envText);
+
+                    WifiManager manager = (WifiManager) MainActivity.this.getApplicationContext().getSystemService(Context.WIFI_SERVICE);
+                    WifiInfo info = manager.getConnectionInfo();
+                    String sSID = info.getSSID();
+                    if(sSID.length() > 0) context.put("network", sSID);
+
+                    CoapClient client = new CoapClient(COAP_SERVER_URL);
+                    for(Device device : devices){
+                        device.setContext(context);
+                        client.post(gson.toJson(device), MediaTypeRegistry.APPLICATION_JSON);
+                    }
+                    Toast.makeText(MainActivity.this, "CoAP Request Sent!", Toast.LENGTH_LONG).show();
+                }
+            }
+        });
     }
 
-    private LinkedHashMap<String, String> startSnapshots(){
+    @SuppressLint("MissingPermission")
+    private void startSnapshots(){
         SnapshotClient snapshot = Awareness.getSnapshotClient(this);
+        snapshot.getWeather().addOnSuccessListener(new OnSuccessListener<WeatherResponse>() {
+            @Override
+            public void onSuccess(WeatherResponse weatherResponse) {
+                context.put("temperature", String.format("%.2f", weatherResponse.getWeather().getTemperature(Weather.CELSIUS)));
+                context.put("humidity", weatherResponse.getWeather().getHumidity() + "");
+                context.put("feels", String.format("%.2f", weatherResponse.getWeather().getFeelsLikeTemperature(Weather.CELSIUS)));
+            }
+        });
+
         snapshot.getLocation().addOnSuccessListener(new OnSuccessListener<LocationResponse>() {
             @Override
             public void onSuccess(LocationResponse locationResponse) {
-                context.put("location", locationResponse.getLocation().toString());
-                Toast.makeText(MainActivity.this, context.get("location"), Toast.LENGTH_SHORT).show();
-            }
-        }).addOnFailureListener(new OnFailureListener() {
-            @Override
-            public void onFailure(@NonNull Exception e) {
-                Toast.makeText(MainActivity.this, "Error!", Toast.LENGTH_SHORT).show();
-                Log.e("location", e.toString());
+                context.put("latitude", locationResponse.getLocation().getLatitude() + "");
+                context.put("longitude", locationResponse.getLocation().getLongitude() + "");
             }
         });
 
         snapshot.getDetectedActivity().addOnSuccessListener(new OnSuccessListener<DetectedActivityResponse>() {
             @Override
             public void onSuccess(DetectedActivityResponse detectedActivityResponse) {
-                context.put("detectedActivity", detectedActivityResponse.getActivityRecognitionResult().getMostProbableActivity().toString());
-                Toast.makeText(MainActivity.this, context.get("detectedActivity"), Toast.LENGTH_SHORT).show();
-            }
-        }).addOnFailureListener(new OnFailureListener() {
-            @Override
-            public void onFailure(@NonNull Exception e) {
-                Toast.makeText(MainActivity.this, "Error!", Toast.LENGTH_SHORT).show();
-                Log.e("detectedActivity", e.toString());
+                String detectedActivity = null;
+
+                switch (detectedActivityResponse.getActivityRecognitionResult().getMostProbableActivity().getType()){
+                    case DetectedActivity.IN_VEHICLE: detectedActivity = "inVehicle"; break;
+                    case DetectedActivity.ON_BICYCLE: detectedActivity = "onBicycle"; break;
+                    case DetectedActivity.ON_FOOT:    detectedActivity = "onFoot"; break;
+                    case DetectedActivity.STILL:      detectedActivity = "still"; break;
+                    case DetectedActivity.TILTING:    detectedActivity = "tilting"; break;
+                    case DetectedActivity.WALKING:    detectedActivity = "walking"; break;
+                    case DetectedActivity.RUNNING:    detectedActivity = "running"; break;
+                    default: detectedActivity = "unknown";
+                }
+
+                context.put("detectedActivity", detectedActivity);
             }
         });
 
         snapshot.getTimeIntervals().addOnSuccessListener(new OnSuccessListener<TimeIntervalsResponse>() {
             @Override
             public void onSuccess(TimeIntervalsResponse timeIntervalsResponse) {
-                context.put("timeInterval", timeIntervalsResponse.getTimeIntervals().toString());
-                Toast.makeText(MainActivity.this, context.get("timeInterval"), Toast.LENGTH_SHORT).show();
-            }
-        }).addOnFailureListener(new OnFailureListener() {
-            @Override
-            public void onFailure(@NonNull Exception e) {
-                Toast.makeText(MainActivity.this, "Error!", Toast.LENGTH_SHORT).show();
-                Log.e("timeInterval", e.toString());
+                String interval = null;
+                int[] intervals = timeIntervalsResponse.getTimeIntervals().getTimeIntervals();
+
+                switch (intervals[0]){
+                    case TimeFence.TIME_INTERVAL_WEEKDAY: interval = "weekday_"; break;
+                    case TimeFence.TIME_INTERVAL_WEEKEND: interval = "weekend_"; break;
+                    case TimeFence.TIME_INTERVAL_HOLIDAY: interval = "holiday_"; break;
+                    default: interval = "unknown";
+                }
+                switch (intervals[1]){
+                    case TimeFence.TIME_INTERVAL_MORNING:   interval += "morning"; break;
+                    case TimeFence.TIME_INTERVAL_AFTERNOON: interval += "afternoon"; break;
+                    case TimeFence.TIME_INTERVAL_EVENING:   interval += "evening"; break;
+                    case TimeFence.TIME_INTERVAL_NIGHT:     interval += "night"; break;
+                    default: interval = "unknown";
+                }
+
+                context.put("timeInterval", interval);
+                Toast.makeText(MainActivity.this, "Context ok!", Toast.LENGTH_SHORT).show();
             }
         });
-
-        return context;
     }
 
     private ArrayList<Device> createDevices(List<Sensor> sensors){
@@ -221,25 +266,5 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
             ex.printStackTrace();
         }
         return null;
-    }
-
-    @Override
-    public void onLocationChanged(Location location) {
-        Toast.makeText(MainActivity.this, "Latitude:" + location.getLatitude() + ", Longitude:" + location.getLongitude(), Toast.LENGTH_SHORT).show();
-    }
-
-    @Override
-    public void onStatusChanged(String s, int i, Bundle bundle) {
-
-    }
-
-    @Override
-    public void onProviderEnabled(String s) {
-
-    }
-
-    @Override
-    public void onProviderDisabled(String s) {
-
     }
 }
