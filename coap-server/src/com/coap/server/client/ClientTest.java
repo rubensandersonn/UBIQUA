@@ -29,7 +29,7 @@ public class ClientTest {
 		
 		Gson gson = new Gson();
 		
-		CoapClient client = new CoapClient("coap://18.229.202.214:5683/devices");
+		CoapClient client = new CoapClient("coap://localhost/devices");
         CoapResponse response = client.post(gson.toJson(device1), MediaTypeRegistry.APPLICATION_JSON);
         if(response != null){
         	System.out.println(response.getResponseText());

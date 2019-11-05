@@ -15,10 +15,12 @@ package com.coap.server.main;
 
 import java.net.SocketException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 import org.eclipse.californium.core.CoapResource;
 import org.eclipse.californium.core.CoapServer;
+import org.eclipse.californium.core.coap.MediaTypeRegistry;
 import org.eclipse.californium.core.coap.CoAP.ResponseCode;
 import org.eclipse.californium.core.server.resources.CoapExchange;
 import org.eclipse.californium.core.server.resources.Resource;
@@ -108,20 +110,61 @@ public class Server extends CoapServer {
 
 	    @Override
 	    public void handleGET(CoapExchange exchange) {
-	        List<String> uriPath = exchange.getRequestOptions().getURIPaths();
-	        // check if there is a sub-resource given, and if so use it for processing
-	        if (uriPath.size() > 1) {
-	            exchange.respond("Process " + uriPath.get(1));
-	        } else {
-	            exchange.respond(ResponseCode.NOT_IMPLEMENTED);
-	        }
+	    	System.out.println("=======================");
+	    	try {
+	    		System.out.println("children: "+getChildren());
+		    	
+		    	List<String> uriPaths = exchange.getRequestOptions().getURIQueries();
+		    	
+		    	System.out.println("parames: "+uriPaths);
+		    	
+		    	if(uriPaths.size() >= 1) {
+		    		// the filter is passed by the uri as "/devices/filter"
+		    		String filter = uriPaths.get(0);
+
+		    		// this filters by all children devices
+		    		Collection<Resource> filtered = filterDevices(filter);
+
+		    		// marshaling to json and sending
+		    		Gson gson = new Gson();
+		    		exchange.respond(filtered.toString());
+		    	}else {
+		    		exchange.respond(ResponseCode.BAD_REQUEST);
+		    	}
+	    	}catch(Exception e) {
+	    		e.printStackTrace();
+	    	}
+	    	
+	    	System.out.println("=======================");
+	    	
+	    }
+	    
+	    private Collection<Resource> filterDevices(String filter){
+	    	Collection<Resource> children = getChildren();
+	    	Collection<Resource> res = new ArrayList<Resource>();
+	    	
+	    	System.out.println("attributes: "+getAttributes());
+	    	
+	    	for(Resource child : children) {
+	    		System.out.println("+===");
+	    		System.out.println("on filter: " + child.getName());
+	    		System.out.println(": " + child.getPath());
+	    		System.out.println(": " + child.getURI());
+	    		System.out.println(": " + child.getClass());
+	    		System.out.println(": " + child.getAttributes().getResourceTypes());
+	    		System.out.println(": " + child.getAttributes().getContentTypes());
+	    		System.out.println(": " + child.getAttributes().getInterfaceDescriptions());
+	    		
+	    		if(child.getAttributes().getInterfaceDescriptions().contains(filter)) {
+	    			System.out.println("---ahoy---");
+	    			res.add(child);
+	    		}
+	    		System.out.println("+===");
+	    	}
+	    	
+	    	return res;
 	    }
 
-	    @Override
-	    public Resource getChild(String name) {
-	        // even sub-resources will land in the GET of this resource
-	        return this;
-	    }
 	}
 
 }

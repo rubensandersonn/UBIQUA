@@ -13,21 +13,21 @@ public class ClientGetTest {
 		Client client5 = new Client("client05", "administrator", "room4", Utils.getMyIP());
 		
 		// testing for actuators
-		CoapClient client = AFClientRequest.actuatorsRequest();
+		CoapClient actuatorsFilterClient = AFClientRequest.actuatorsRequest();
 		ClientCoapHandler clientHandler = new ClientCoapHandler(client1.getUid());
-        client.get(clientHandler);
+		actuatorsFilterClient.get(clientHandler);
         
-        clientHandler = new ClientCoapHandler(client2.getUid());
-        client.get(clientHandler);
+        //clientHandler = new ClientCoapHandler(client2.getUid());
+        //client.get(clientHandler);
         
-        clientHandler = new ClientCoapHandler(client3.getUid());
-        client.get(clientHandler);
+        //clientHandler = new ClientCoapHandler(client3.getUid());
+        //client.get(clientHandler);
         
-        clientHandler = new ClientCoapHandler(client4.getUid());
-        client.get(clientHandler);
+        //clientHandler = new ClientCoapHandler(client4.getUid());
+        //client.get(clientHandler);
         
-        clientHandler = new ClientCoapHandler(client5.getUid());
-        client.discover();
+        //clientHandler = new ClientCoapHandler(client5.getUid());
+        System.out.println("Discovered: "+actuatorsFilterClient.discover().toString());
         
 	}
 }

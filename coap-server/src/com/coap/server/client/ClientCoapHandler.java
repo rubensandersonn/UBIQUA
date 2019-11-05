@@ -1,7 +1,11 @@
 package com.coap.server.client;
 
+import java.util.Collection;
+
 import org.eclipse.californium.core.CoapHandler;
 import org.eclipse.californium.core.CoapResponse;
+
+import com.google.gson.Gson;
 
 public class ClientCoapHandler implements CoapHandler {
 	
@@ -26,7 +30,8 @@ public class ClientCoapHandler implements CoapHandler {
 	 */
 	public void onLoad(CoapResponse response) {
 		if(response != null){
-        	System.out.println("- RESPONSE: "+response.getResponseText());
+        	//System.out.println("- RESPONSE: "+ new Gson().fromJson(response.getResponseText(), Collection.class) );
+			System.out.println("* Response: " + response.getResponseText());
         }else{
         	System.out.println("Request failed");
         }
