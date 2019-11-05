@@ -12,14 +12,19 @@ public class Device {
 	
 	/** Unique identification. E.g. stemp01 */
 	private String uid;
+	
 	/** Types: actuator or sensor */
 	private String type;
+	
 	/** Resource type: e.g.: temperature, pressure, lightness, print */
 	private String resourceType;
+	
 	/** Context Type: e.g.: string, integer, json, ... */
 	private int contextType;
+	
 	/** Device IP */
 	private String ip;
+	
 	/** Device context. E.g.: <"temperature", "29ºC"> */
 	private LinkedHashMap<String, String> context;
 	
