@@ -1,8 +1,0 @@
-Manifest-Version: 1.0
-Class-Path: lib/californium-core-1.0.0-M1.jar lib/element-connector-1.
- 0.0-M1.jar lib/gson-2.8.5.jar
-Build-Jdk: 1.7.0_79
-Built-By: PedroAlmir
-Created-By: Maven Integration for Eclipse
-Main-Class: com.coap.server.main
-

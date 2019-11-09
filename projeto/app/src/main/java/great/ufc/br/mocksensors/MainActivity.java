@@ -282,8 +282,8 @@ public class MainActivity extends AppCompatActivity {
         @Override
         protected String doInBackground(Void... voids) {
             String text;
-            int server_port = 50008;
-            byte[] message = new byte[1500];
+            int server_port = 4445;
+            byte[] message = new byte[1024];
             try{
                 DatagramPacket p = new DatagramPacket(message, message.length);
                 DatagramSocket s = new DatagramSocket(server_port);
@@ -291,10 +291,11 @@ public class MainActivity extends AppCompatActivity {
                 text = new String(message, 0, p.getLength());
                 Log.d("rockman","message:" + text);
                 s.close();
+                return text;
             }catch(Exception e){
                 Log.d("rockman","error  " + e.toString());
             }
-            return "";
+            return "problem";
         }
 
         @Override
