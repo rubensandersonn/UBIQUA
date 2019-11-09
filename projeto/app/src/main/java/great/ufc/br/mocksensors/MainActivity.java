@@ -317,42 +317,44 @@ public class MainActivity extends AppCompatActivity {
         protected void onProgressUpdate(DeviceActionMessage... progress) {
             DeviceActionMessage message = progress[0];
             Toast.makeText(MainActivity.this, message.toString(), Toast.LENGTH_LONG).show();
-            /* Checking the cToken*/
-            if(message.getcToken().equals(MainActivity.CTOKEN) && !message.getActions().isEmpty()){
-                for(DeviceAction action : message.getActions()){
-                    if(action.getType().equals("vibrate")){
-                        int duration = (action.getDuration() > 0) ? action.getDuration() : 500;
+            if(message.getIps().isEmpty() || message.getIps().contains(getLocalIpAddress())){
+                /* Checking the cToken*/
+                if(message.getcToken().equals(MainActivity.CTOKEN) && !message.getActions().isEmpty()){
+                    for(DeviceAction action : message.getActions()){
+                        if(action.getType().equals("vibrate")){
+                            int duration = (action.getDuration() > 0) ? action.getDuration() : 500;
 
-                        Vibrator v = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                            v.vibrate(VibrationEffect.createOneShot(duration, VibrationEffect.DEFAULT_AMPLITUDE));
-                        } else {
-                            v.vibrate(duration); //deprecated in API 26
-                        }
-                    }else if(action.getType().equals("light")){
-                        if(MainActivity.this.getApplicationContext().getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA_FLASH)){
-                            try {
-                                CameraManager cameraManager = (CameraManager) getSystemService(Context.CAMERA_SERVICE);
-                                String cameraId = cameraManager.getCameraIdList()[0];
-                                int lightMode = action.getDuration();
-
-                                if(lightMode == 0){ // turn light off
-                                    cameraManager.setTorchMode(cameraId, false);
-                                }else if(lightMode < 0){ // turn light on
-                                    cameraManager.setTorchMode(cameraId, true);
-                                }else if(lightMode > 0){
-                                    cameraManager.setTorchMode(cameraId, true);  // turn on
-                                    Thread.sleep(lightMode);                             // wait a moment
-                                    cameraManager.setTorchMode(cameraId, false); // turn off
-                                }
-                            } catch (CameraAccessException e) {
-                                Log.d("UDP_Listener","Error: " + e.toString());
-                            } catch (InterruptedException e) {
-                                Log.d("UDP_Listener","Error: " + e.toString());
+                            Vibrator v = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                                v.vibrate(VibrationEffect.createOneShot(duration, VibrationEffect.DEFAULT_AMPLITUDE));
+                            } else {
+                                v.vibrate(duration); //deprecated in API 26
                             }
+                        }else if(action.getType().equals("light")){
+                            if(MainActivity.this.getApplicationContext().getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA_FLASH)){
+                                try {
+                                    CameraManager cameraManager = (CameraManager) getSystemService(Context.CAMERA_SERVICE);
+                                    String cameraId = cameraManager.getCameraIdList()[0];
+                                    int lightMode = action.getDuration();
+
+                                    if(lightMode == 0){ // turn light off
+                                        cameraManager.setTorchMode(cameraId, false);
+                                    }else if(lightMode < 0){ // turn light on
+                                        cameraManager.setTorchMode(cameraId, true);
+                                    }else if(lightMode > 0){
+                                        cameraManager.setTorchMode(cameraId, true);  // turn on
+                                        Thread.sleep(lightMode);                             // wait a moment
+                                        cameraManager.setTorchMode(cameraId, false); // turn off
+                                    }
+                                } catch (CameraAccessException e) {
+                                    Log.d("UDP_Listener","Error: " + e.toString());
+                                } catch (InterruptedException e) {
+                                    Log.d("UDP_Listener","Error: " + e.toString());
+                                }
+                            }
+                        }else{
+                            Toast.makeText(MainActivity.this, "Unknown action type: " + action.getType(), Toast.LENGTH_LONG).show();
                         }
-                    }else{
-                        Toast.makeText(MainActivity.this, "Unknown action type: " + action.getType(), Toast.LENGTH_LONG).show();
                     }
                 }
             }
