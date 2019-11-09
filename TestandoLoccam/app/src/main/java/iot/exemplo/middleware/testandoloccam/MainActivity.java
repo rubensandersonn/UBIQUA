@@ -3,6 +3,7 @@ package iot.exemplo.middleware.testandoloccam;
 import android.graphics.Color;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.Toast;
 
@@ -56,7 +57,7 @@ public class MainActivity extends AppCompatActivity implements ContextListener {
 
     @Override
     public void onContextReady(String data) {
-
+        Log.d("LOCCAM", data);
         System.out.println(data);
         changeBackground();
 
@@ -72,6 +73,5 @@ public class MainActivity extends AppCompatActivity implements ContextListener {
     protected void onDestroy() {
         ContextManager.getInstance().unregisterListener(this);
         super.onDestroy();
-
     }
 }

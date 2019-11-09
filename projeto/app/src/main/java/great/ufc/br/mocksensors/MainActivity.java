@@ -60,13 +60,16 @@ import java.util.Enumeration;
 import java.util.LinkedHashMap;
 import java.util.List;
 
+import great.ufc.br.mocksensors.loccam.ContextKeys;
+import great.ufc.br.mocksensors.loccam.ContextListener;
+import great.ufc.br.mocksensors.loccam.ContextManager;
 import great.ufc.br.mocksensors.model.Device;
 import great.ufc.br.mocksensors.model.DeviceAction;
 import great.ufc.br.mocksensors.model.DeviceActionMessage;
 
 import static android.support.v4.content.PermissionChecker.PERMISSION_GRANTED;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements ContextListener {
 
     private Gson gson;
     private ArrayList<Device> devices;
@@ -91,6 +94,11 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        //System.out.println("############### Aqui ###############");
+        //ContextManager.getInstance().connect(this,"MockSensorsApp_LoCCAM");
+        //ContextManager.getInstance().registerListener(this);
+
         gson = new Gson();
 
         if(udpListener != null) udpListener.cancel(true);
@@ -286,6 +294,17 @@ public class MainActivity extends AppCompatActivity {
             ex.printStackTrace();
         }
         return null;
+    }
+
+    @Override
+    public void onContextReady(String data) {
+        System.out.println("\n###############\n" + data + "\n###############\n");
+        Log.d("LOCCAM", data);
+    }
+
+    @Override
+    public String getContextKey() {
+        return ContextKeys.PROXIMITY;
     }
 
     private final class UDP_Listener extends AsyncTask<Void, DeviceActionMessage, String>{
