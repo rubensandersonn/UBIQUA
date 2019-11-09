@@ -3,14 +3,17 @@ package great.ufc.br.mocksensors;
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.content.Context;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.hardware.Sensor;
 import android.hardware.SensorManager;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
+import android.os.AsyncTask;
 import android.os.Build;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -39,9 +42,12 @@ import com.google.gson.Gson;
 import org.eclipse.californium.core.CoapClient;
 import org.eclipse.californium.core.coap.MediaTypeRegistry;
 
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
 import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
+import java.net.Socket;
 import java.net.SocketException;
 import java.util.ArrayList;
 import java.util.Enumeration;
@@ -59,6 +65,8 @@ public class MainActivity extends AppCompatActivity {
     private LinkedHashMap<String, String> context;
     private static final String COAP_SERVER_URL = "coap://18.229.202.214:5683/devices";
 
+    private UDP_Listener udpListener;
+
     private String[] myPermissions = {
         Manifest.permission.ACCESS_FINE_LOCATION,
         Manifest.permission.INTERNET,
@@ -75,6 +83,10 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         gson = new Gson();
 
+        if(udpListener != null) udpListener.cancel(true);
+        udpListener = new UDP_Listener();
+        udpListener.execute();
+
         if(ActivityCompat.checkSelfPermission(MainActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED){
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                 requestPermissions(myPermissions,123);
@@ -83,8 +95,6 @@ public class MainActivity extends AppCompatActivity {
             context = new LinkedHashMap<String, String>();
             startSnapshots();
         }
-
-
 
         SensorManager sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
         List<Sensor> availableSensors = sensorManager.getSensorList(Sensor.TYPE_ALL);
@@ -266,5 +276,30 @@ public class MainActivity extends AppCompatActivity {
             ex.printStackTrace();
         }
         return null;
+    }
+
+    private final class UDP_Listener extends AsyncTask<Void, Void, String>{
+        @Override
+        protected String doInBackground(Void... voids) {
+            String text;
+            int server_port = 50008;
+            byte[] message = new byte[1500];
+            try{
+                DatagramPacket p = new DatagramPacket(message, message.length);
+                DatagramSocket s = new DatagramSocket(server_port);
+                s.receive(p);
+                text = new String(message, 0, p.getLength());
+                Log.d("rockman","message:" + text);
+                s.close();
+            }catch(Exception e){
+                Log.d("rockman","error  " + e.toString());
+            }
+            return "";
+        }
+
+        @Override
+        protected void onPostExecute(String result) {
+            Toast.makeText(MainActivity.this, result, Toast.LENGTH_SHORT).show();
+        }
     }
 }
