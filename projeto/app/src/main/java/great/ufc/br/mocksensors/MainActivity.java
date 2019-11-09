@@ -5,12 +5,17 @@ import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Camera;
 import android.hardware.Sensor;
 import android.hardware.SensorManager;
+import android.hardware.camera2.CameraAccessException;
+import android.hardware.camera2.CameraManager;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.os.AsyncTask;
 import android.os.Build;
+import android.os.VibrationEffect;
+import android.os.Vibrator;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.LocalBroadcastManager;
@@ -49,12 +54,15 @@ import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.Socket;
 import java.net.SocketException;
+import java.security.Policy;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.LinkedHashMap;
 import java.util.List;
 
 import great.ufc.br.mocksensors.model.Device;
+import great.ufc.br.mocksensors.model.DeviceAction;
+import great.ufc.br.mocksensors.model.DeviceActionMessage;
 
 import static android.support.v4.content.PermissionChecker.PERMISSION_GRANTED;
 
@@ -64,8 +72,10 @@ public class MainActivity extends AppCompatActivity {
     private ArrayList<Device> devices;
     private LinkedHashMap<String, String> context;
     private static final String COAP_SERVER_URL = "coap://18.229.202.214:5683/devices";
+    private static final String CTOKEN = "CMU-2019";
 
     private UDP_Listener udpListener;
+    private static boolean runUDL_Listener = true;
 
     private String[] myPermissions = {
         Manifest.permission.ACCESS_FINE_LOCATION,
@@ -278,24 +288,74 @@ public class MainActivity extends AppCompatActivity {
         return null;
     }
 
-    private final class UDP_Listener extends AsyncTask<Void, Void, String>{
+    private final class UDP_Listener extends AsyncTask<Void, DeviceActionMessage, String>{
         @Override
         protected String doInBackground(Void... voids) {
-            String text;
+            String json;
             int server_port = 4445;
+            Gson gsonService = new Gson();
             byte[] message = new byte[1024];
-            try{
-                DatagramPacket p = new DatagramPacket(message, message.length);
-                DatagramSocket s = new DatagramSocket(server_port);
-                s.receive(p);
-                text = new String(message, 0, p.getLength());
-                Log.d("rockman","message:" + text);
-                s.close();
-                return text;
-            }catch(Exception e){
-                Log.d("rockman","error  " + e.toString());
+            while(MainActivity.runUDL_Listener){
+                try{
+                    DatagramPacket p = new DatagramPacket(message, message.length);
+                    DatagramSocket s = new DatagramSocket(server_port);
+                    s.receive(p);
+                    json = new String(message, 0, p.getLength());
+
+                    DeviceActionMessage deviceActionMessage = gsonService.fromJson(json, DeviceActionMessage.class);
+
+                    s.close();
+                    publishProgress(deviceActionMessage);
+                }catch(Exception e){
+                    Log.d("UDP_Listener","Error: " + e.toString());
+                }
             }
-            return "problem";
+            return "UDL Listener Closed";
+        }
+
+        @Override
+        protected void onProgressUpdate(DeviceActionMessage... progress) {
+            DeviceActionMessage message = progress[0];
+            Toast.makeText(MainActivity.this, message.toString(), Toast.LENGTH_LONG).show();
+            /* Checking the cToken*/
+            if(message.getcToken().equals(MainActivity.CTOKEN) && !message.getActions().isEmpty()){
+                for(DeviceAction action : message.getActions()){
+                    if(action.getType().equals("vibrate")){
+                        int duration = (action.getDuration() > 0) ? action.getDuration() : 500;
+
+                        Vibrator v = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                            v.vibrate(VibrationEffect.createOneShot(duration, VibrationEffect.DEFAULT_AMPLITUDE));
+                        } else {
+                            v.vibrate(duration); //deprecated in API 26
+                        }
+                    }else if(action.getType().equals("light")){
+                        if(MainActivity.this.getApplicationContext().getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA_FLASH)){
+                            try {
+                                CameraManager cameraManager = (CameraManager) getSystemService(Context.CAMERA_SERVICE);
+                                String cameraId = cameraManager.getCameraIdList()[0];
+                                int lightMode = action.getDuration();
+
+                                if(lightMode == 0){ // turn light off
+                                    cameraManager.setTorchMode(cameraId, false);
+                                }else if(lightMode < 0){ // turn light on
+                                    cameraManager.setTorchMode(cameraId, true);
+                                }else if(lightMode > 0){
+                                    cameraManager.setTorchMode(cameraId, true);  // turn on
+                                    Thread.sleep(lightMode);                             // wait a moment
+                                    cameraManager.setTorchMode(cameraId, false); // turn off
+                                }
+                            } catch (CameraAccessException e) {
+                                Log.d("UDP_Listener","Error: " + e.toString());
+                            } catch (InterruptedException e) {
+                                Log.d("UDP_Listener","Error: " + e.toString());
+                            }
+                        }
+                    }else{
+                        Toast.makeText(MainActivity.this, "Unknown action type: " + action.getType(), Toast.LENGTH_LONG).show();
+                    }
+                }
+            }
         }
 
         @Override

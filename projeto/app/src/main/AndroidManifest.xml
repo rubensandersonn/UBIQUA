@@ -12,6 +12,9 @@
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
 
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature android:name="android.hardware.camera" />
+
     <!-- - MY KEY: AIzaSyBXg-Bpw9PvSv-X1ysdJJyx40dJ_t5Tk80 -->
     <application
         android:allowBackup="true"
