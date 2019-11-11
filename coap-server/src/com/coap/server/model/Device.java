@@ -28,22 +28,42 @@ public class Device {
 	/** Device context. E.g.: <"temperature", "29ºC"> */
 	private LinkedHashMap<String, String> context;
 	
+	// Location: the name of the room
+	private String location;
+	
+	
+
 	/**
+	 * The Device constructor
 	 * @param uid
 	 * @param type
 	 * @param resourceType
 	 * @param contextType
 	 * @param ip
+	 * @param location 
 	 */
-	public Device(String uid, String type, String resourceType, int contextType, String ip) {
+	public Device(String uid, String type, String resourceType, int contextType, String ip, String location) {
 		this.uid = uid;
 		this.type = type;
 		this.resourceType = resourceType;
 		this.contextType = contextType;
 		this.ip = ip;
+		this.location = location;
+		
 		this.context = new LinkedHashMap<>();
+		
+		addContext("location", this.location);
+		addContext("ip", this.ip);
 	}
 
+	public String getLocation() {
+		return location;
+	}
+
+	public void setLocation(String location) {
+		this.location = location;
+	}
+	
 	/**
 	 * @param variable
 	 * @param value

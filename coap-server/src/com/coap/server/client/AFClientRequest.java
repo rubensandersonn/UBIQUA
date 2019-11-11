@@ -8,14 +8,14 @@ abstract class AFClientRequest {
 	 * returns a coap client searching for all actuators
 	 * */
 	public static CoapClient actuatorsRequest() {
-		return new CoapClient("coap://localhost/devices?sensor");
+		return new CoapClient("coap://localhost/devices?type=sensor");
 	}
 	
 	/*
 	 * returns a coap client searching for all sensors
 	 * */
 	public static CoapClient sensorsRequest() {
-		return new CoapClient("coap://localhost/devices?actuator");
+		return new CoapClient("coap://localhost/devices?type=actuator");
 	}
 	
 	/*

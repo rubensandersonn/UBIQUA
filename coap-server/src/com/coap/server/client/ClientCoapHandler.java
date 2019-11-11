@@ -32,6 +32,9 @@ public class ClientCoapHandler implements CoapHandler {
 		if(response != null){
         	//System.out.println("- RESPONSE: "+ new Gson().fromJson(response.getResponseText(), Collection.class) );
 			System.out.println("* Response: " + response.getResponseText());
+			System.out.println(">> payload"+ response.getPayload());
+			System.out.println(">> options"+ response.getOptions());
+			System.out.println(">> code"+ response.getCode());
         }else{
         	System.out.println("Request failed");
         }

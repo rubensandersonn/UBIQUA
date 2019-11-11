@@ -21,11 +21,15 @@ public class ClientTest {
 	 * @param args
 	 */
 	public static void main(String[] args) {
-		Device device1 = new Device("sgps01", "sensor", "location", MediaTypeRegistry.APPLICATION_JSON, Utils.getMyIP());
-		Device device2 = new Device("adoor01", "actuator", "door", MediaTypeRegistry.APPLICATION_JSON, Utils.getMyIP());
-		Device device3 = new Device("soprinter01", "smart object", "printer", MediaTypeRegistry.APPLICATION_JSON, Utils.getMyIP());
-		Device device4 = new Device("stemp01", "sensor", "temperature", MediaTypeRegistry.APPLICATION_JSON, Utils.getMyIP());
-		Device device5 = new Device("slight01", "sensor", "lightness", MediaTypeRegistry.APPLICATION_JSON, Utils.getMyIP());
+		Device device1 = new Device("sgps01", "sensor", "location", MediaTypeRegistry.APPLICATION_JSON, Utils.getMyIP(), "Room1");
+		Device device2 = new Device("adoor01", "actuator", "door", MediaTypeRegistry.APPLICATION_JSON, Utils.getMyIP(),"Room1");
+		device2.addContext("value", "true");
+		Device device3 = new Device("soprinter01", "smart object", "printer", MediaTypeRegistry.APPLICATION_JSON, Utils.getMyIP(), "Room2");
+		device3.addContext("value", "on");
+		Device device4 = new Device("stemp01", "sensor", "temperature", MediaTypeRegistry.APPLICATION_JSON, Utils.getMyIP(), "Room2");
+		device4.addContext("value", "25");
+		Device device5 = new Device("slight01", "sensor", "lightness", MediaTypeRegistry.APPLICATION_JSON, Utils.getMyIP(), "Room3");
+		device5.addContext("value", "0");
 		
 		Gson gson = new Gson();
 		
