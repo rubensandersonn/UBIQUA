@@ -161,6 +161,6 @@ public class Device {
 	 */
 	@Override
 	public String toString() {
-		return "Device [uid=" + uid + ", type=" + type + ", resourceType=" + resourceType + ", contextType=" + contextType + ", ip=" + ip + ", context=" + context + "]";
+		return "Device [uid=" + uid + ", type=" + type + ", resourceType=" + resourceType + ", contextType=" + contextType + ", ip=" + ip + ", location=" + location + ", context=" + context + "]";
 	}
 }

@@ -17,7 +17,7 @@ import com.google.gson.Gson;
  * IP EC2: coap://52.67.118.29:5683/devices
  * Local: coap://localhost/devices
  */
-public class ClientTest {
+public class PostTest {
 	/**
 	 * @param args
 	 */

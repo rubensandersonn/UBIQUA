@@ -21,19 +21,20 @@ import java.util.List;
 
 import org.eclipse.californium.core.CoapResource;
 import org.eclipse.californium.core.CoapServer;
-import org.eclipse.californium.core.coap.MediaTypeRegistry;
 import org.eclipse.californium.core.coap.CoAP.ResponseCode;
 import org.eclipse.californium.core.server.resources.CoapExchange;
 import org.eclipse.californium.core.server.resources.Resource;
 import com.coap.server.skeleton.Skeleton;
-
+import com.coap.server.utils.Utils;
 import com.coap.server.model.Device;
 import com.google.gson.Gson;
+
+
 
 /**
  * The Class CoAPServer.
  * 
- * @author Yasith Lokuge, Pedro Almir
+ * @author Yasith Lokuge, Pedro Almir, Rubens Silva
  * 
  *         Commands to start/stop this application: java -jar [YourJarPath] ps
  *         -ef | grep java sudo kill -9 <pid>
@@ -47,8 +48,22 @@ import com.google.gson.Gson;
  *         - rede wifi
  *         - atividade
  *         - nome do ambiente 
+ *         
+ *         To run the project, start with this file - some devices are added by default. 
+ *         
+ *         The local tests are in client package. For testing in cloud, instantiate the appropriated 
+ *         client the Abstract factory 
+ *         	(e.g., new AFClientRequest.sensorCloudClient() for a client request uri's parameter with filter of 'sensors' for cloud) 
+ *         - to filter by actuators: run GetAtuatorsTest
+ *         - to filter by sensors: run GetSensorsTest
+ *         - to get all: run Discover
+ *         - to post new five devices: run PostTest
+ *         
+ *         Fell free to add more tests
  */
 public class Server extends CoapServer {
+	
+	
 
 	/**
 	 * The main method.
@@ -76,6 +91,8 @@ public class Server extends CoapServer {
 		/* Provide an instance of the main resource to register clients */
 		add(new RegisterClientsResource());
 	}
+	
+	
 
 	/**
 	 * The Class RegisterClientsResource.
@@ -90,6 +107,25 @@ public class Server extends CoapServer {
 			super("devices");
 			// set display name
 			getAttributes().setTitle("devices");
+			
+			// ********
+			
+			/* creating the default devices */
+			for(Device device : Utils.createPresetDevices()) {
+				
+				CoapResource newResource = new CoapResource(device.getUid(), true);
+				newResource.getAttributes().addContentType(device.getContextType());
+				newResource.getAttributes().addResourceType(device.getResourceType());
+				newResource.getAttributes().addInterfaceDescription(device.getType());
+				
+				
+				// all the context goes in this
+				for (String key : device.getContext().keySet()) {
+					newResource.getAttributes().addAttribute(key, device.getContext().get(key));
+				}
+				
+				add(newResource);
+			}
 		}
 
 		/*
@@ -103,8 +139,29 @@ public class Server extends CoapServer {
 		public void handlePOST(CoapExchange exchange) {
 			try {
 				Device device = new Gson().fromJson(exchange.getRequestText(), Device.class);
+				
+				/*checking for repeated devices*/
+				for(Resource r : getChildren()) {
+					if(r.getName().equalsIgnoreCase(device.getUid())) {
+						System.out.println("\n== Device already exists: " + device.getUid());
+						r.getAttributes().addContentType(device.getContextType());
+						r.getAttributes().addResourceType(device.getResourceType());
+						r.getAttributes().addInterfaceDescription(device.getType());
+						
+						
+						
+						// all the context goes in this
+						for (String key : device.getContext().keySet()) {
+							r.getAttributes().addAttribute(key, device.getContext().get(key));
+						}
+						System.out.println("\n changed!\n===");
+						exchange.respond(ResponseCode.CHANGED);
+						return;
+					}
+				}
 
-				CoapResource newResource = new CoapResource(device.getUid(), true);
+				/* creating a new Resource */ 
+				CoapResource newResource = new CoapResource(device.getUid() + "_" + device.getType(), true);
 				newResource.getAttributes().addContentType(device.getContextType());
 				newResource.getAttributes().addResourceType(device.getResourceType());
 				newResource.getAttributes().addInterfaceDescription(device.getType());
@@ -118,7 +175,7 @@ public class Server extends CoapServer {
 				
 				add(newResource);
 				exchange.respond(ResponseCode.CREATED);
-				System.out.println(device.toString());
+				System.out.println("===\nCREATED:\t"+device.toString()+"\n===");
 			} catch (Exception ex) {
 				exchange.respond(ResponseCode.INTERNAL_SERVER_ERROR);
 			}
